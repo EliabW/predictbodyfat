@@ -17,3 +17,5 @@ Depends:
 Suggests: 
     R (>= 4.4.0)
 RoxygenNote: 7.3.1
+URL: https://github.com/EliabW/predictbodyfat
+BugReports: https://github.com/EliabW/predictbodyfat/issues
