@@ -1,0 +1,19 @@
+Package: predictbodyfat
+Title: A Machine Learning Tool for Imputation of Body Fat Percentage
+Version: 0.1.0
+Author: person("Eliab", "Woldegebriel", , "weliab12@yahoo.com", role = c("aut", "cre"),
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Maintainer: Bryan Blette <bryan.blette@vumc.org>
+Description: 
+    The predictbodyfat is designed to impute body fat percentage using machine learning 
+    models based on common covariates collected in real world studies using NHANES data.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends: 
+    survey,
+    randomForest,
+    splines
+Suggests: 
+    R (>= 4.4.0)
+RoxygenNote: 7.3.1

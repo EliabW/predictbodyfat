@@ -1,0 +1,232 @@
+---
+title: "PredictBodyFat"
+author: "Eliab Woldegebriel"
+date: "2024-06-07"
+output: html_document
+---
+
+## The predictBodyFat function
+
+```{r}
+# load the models
+# setwd("/Users/eliabwoldegebriel/Documents/predictbodyfat/R")
+
+saved_model1 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/saved_model1.rds")
+saved_weighted_model1 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/saved_weighted_model1.rds")
+saved_model2 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/saved_model2.rds")
+saved_weighted_model2 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/saved_weighted_model2.rds")
+rf_residuals <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/rf_residuals1.rds")
+weighted_rf_residuals <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/weighted_rf_residuals1.rds")
+rf_residuals2 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/rf_residuals2.rds")
+weighted_rf_residuals2 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/weighted_rf_residuals2.rds")
+
+# call the function
+source("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/predictBodyFat.R")
+```
+
+## First illustrations: using data where the true body fat percentages are largely known
+
+*Correlation between systolic blood pressure and known body fat percentage.* 
+```{r}
+# Calculate the truth of pearson correlation between systolic blood pressure 
+# and known body fat percentage
+BFP_truth_pearson <- cor(combined_data$Body_Fat_Percentage, combined_data$Systolic_Blood_Pressure1,use = "complete", method = "pearson")
+
+# Calculate the truth of spearman correlation between systolic blood pressure 
+# and known body fat percentage
+BFP_truth_spearman <- cor(combined_data$Body_Fat_Percentage, combined_data$Systolic_Blood_Pressure1, use = "complete", method = "spearman")
+```
+
+*Correlation between systolic blood pressure and BMI.*
+```{r}
+# Calculate the truth of pearson correlation between systolic blood pressure and BMI.
+BMI_truth_pearson <- cor(combined_data$BMI, combined_data$Systolic_Blood_Pressure1, use = "complete",  method = "pearson")
+
+# Calculate the truth of spearman correlation between systolic blood pressure and BMI.
+BMI_truth_spearman <- cor(combined_data$BMI, combined_data$Systolic_Blood_Pressure1,use = "complete", method = "spearman")
+
+```
+
+*Correlation between predictBodyFat function and systolic blood pressure.*
+the predictBodyFat function has a closer correlation estimate to Systolic Blood Pressure compare to BMI 
+```{r}
+# Covariate set 1
+predict1 <- predictBodyFat(combined_data, weighted = FALSE, type = "predict", covariate_set = 1)
+
+cov1_predict_pearson <- cor(predict1, combined_data$Systolic_Blood_Pressure1, use = "complete",  method = "pearson")
+
+cov1_predict_spearman <- cor(predict1, combined_data$Systolic_Blood_Pressure1, use = "complete",  method = "spearman")
+
+combined_data$Pregnant[is.na(combined_data$Pregnant)] <- 0
+
+# Covariate set 2
+predict2 <- predictBodyFat(combined_data, weighted = FALSE, type = "predict", covariate_set = 2)
+
+cov2_predict_pearson <- cor(predict2, combined_data$Systolic_Blood_Pressure1, use = "complete",  method = "pearson")
+
+cov2_predict_spearman <- cor(predict2, combined_data$Systolic_Blood_Pressure1, use = "complete",  method = "spearman")
+
+```
+
+## Second illustrations: using data where body fat percentage is never measured.
+
+*Load and merge 2009-2010 NHANES data*
+```{r}
+library(dplyr)
+
+# load NHANES data
+library(nhanesA)
+
+# load data files for Blood Pressure
+BPX_f <- nhanes("BPX_F")
+
+# load data files for Body Measures
+BMX_f <- nhanes("BMX_F")
+
+# load data files for Demographics
+DEMO_f <- nhanes("DEMO_F")
+
+# load data files for Arthritis Body Measures
+ARX_f <- nhanes("ARX_F")
+
+# merge them by SEQN
+v1 <- merge(ARX_f,BMX_f, by = "SEQN")
+v2 <- merge(BPX_f,DEMO_f, by = "SEQN")
+file09to10 <- merge(v1,v2, by = "SEQN")
+  
+# collapse Mexican American and Other Hispanic into one category
+file09to10$RIDRETH1[file09to10$RIDRETH1 == "Mexican American"] <- "Other Hispanic"
+file09to10$RIDRETH1 <- droplevels(file09to10$RIDRETH1)
+levels(file09to10$RIDRETH1) <- c("Hispanic", levels(file09to10$RIDRETH1)[2:4])
+
+# education (20+) as numeric, with missing levels collapsed into one category
+file09to10$DMDEDUC2 <- as.numeric(file09to10$DMDEDUC2)
+file09to10$DMDEDUC2[file09to10$DMDEDUC2 == 7 | file09to10$DMDEDUC2 == 9] <- NA
+
+# pregnant status with missing levels collapsed into one category
+file09to10$RIDEXPRG <- as.numeric(file09to10$RIDEXPRG)
+file09to10$RIDEXPRG[file09to10$RIDEXPRG == 3] <- NA
+
+file09to10 <- file09to10 %>% rename(Pregnant = RIDEXPRG, Education = DMDEDUC2, Race_Ethnicity = RIDRETH1, Arm_Circumference = BMXARMC, Waist_Circumference = BMXWAIST, Gender = RIAGENDR, Age = RIDAGEYR, Height = BMXHT, Weight = BMXWT, BMI = BMXBMI, Occiput_to_Wall_distance = ARXO2WD )
+
+file09to10 <- file09to10 %>% select(Pregnant, Education, Race_Ethnicity, Arm_Circumference, Waist_Circumference, Gender, Age, Height, Weight, BMI, Occiput_to_Wall_distance)
+```
+*Correlation between occiput-to-wall distance and BMI.*
+```{r}
+# Calculate the truth of pearson correlation between systolic blood pressure and BMI.
+file09to10BMI_pearson <- cor(file09to10$BMI, as.numeric(file09to10$Occiput_to_Wall_distance), use = "complete",  method = "pearson")
+
+# Calculate the truth of spearman correlation between systolic blood pressure and BMI.
+file09to10BMI_spearman <- cor(file09to10$BMI, as.numeric(file09to10$Occiput_to_Wall_distance), use = "complete", method = "spearman")
+```
+
+*Predicting on new data where body fat percentage was never measured (NHANES 09-10)*
+* Correlation between predictBodyFat function and occiput-to-wall distance
+```{r}
+# Covariate set 1
+new_predict1 <- predictBodyFat(file09to10, weighted = FALSE, type = "predict", covariate_set = 1)
+
+new_cov1_predict_pearson <- cor(new_predict1, as.numeric(file09to10$Occiput_to_Wall_distance), use = "complete",  method = "pearson")
+
+new_cov1_predict_spearman <- cor(new_predict1,as.numeric(file09to10$Occiput_to_Wall_distance), use = "complete",  method = "spearman")
+
+# Covariate set 2
+new_predict2 <- predictBodyFat(file09to10, weighted = FALSE, type = "predict", covariate_set = 2)
+
+new_cov2_predict_pearson <- cor(new_predict2, as.numeric(file09to10$Occiput_to_Wall_distance), use = "complete",  method = "pearson")
+
+new_cov2_predict_spearman <- cor(new_predict2, as.numeric(file09to10$Occiput_to_Wall_distance), use = "complete",  method = "spearman")
+```
+
+*Load and merge 2009-2010 NHANES data*
+```{r}
+library(dplyr)
+
+# load NHANES data
+library(nhanesA)
+
+# load data files for Blood Pressure
+BPX_f <- nhanes("BPX_F")
+
+# load data files for Body Measures
+BMX_f <- nhanes("BMX_F")
+
+# load data files for Demographics
+DEMO_f <- nhanes("DEMO_F")
+
+# load data files for Dietary Screener Questionnaire
+DTQ_f <- nhanes("DTQ_F")
+
+# merge them by SEQN
+v1 <- merge(DTQ_f,BMX_f, by = "SEQN")
+v2 <- merge(BPX_f,DEMO_f, by = "SEQN")
+new_file09to10 <- merge(v1,v2, by = "SEQN")
+
+# collapse Mexican American and Other Hispanic into one category
+new_file09to10$RIDRETH1[new_file09to10$RIDRETH1 == "Mexican American"] <- "Other Hispanic"
+new_file09to10$RIDRETH1 <- droplevels(new_file09to10$RIDRETH1)
+levels(new_file09to10$RIDRETH1) <- c("Hispanic", levels(new_file09to10$RIDRETH1)[2:4])
+
+# education (20+) as numeric, with missing levels collapsed into one category
+new_file09to10$DMDEDUC2 <- as.numeric(new_file09to10$DMDEDUC2)
+new_file09to10$DMDEDUC2[new_file09to10$DMDEDUC2 == 7 | new_file09to10$DMDEDUC2 == 9] <- NA
+
+# pregnant status with missing levels collapsed into one category
+new_file09to10$RIDEXPRG <- as.numeric(new_file09to10$RIDEXPRG)
+new_file09to10$RIDEXPRG[new_file09to10$RIDEXPRG == 3] <- NA
+
+# make a column that's fill with NA
+new_file09to10$Cookies_Cake <- NA
+
+# update the column to check that for days it keeps the value the same
+new_file09to10$Cookies_Cake[new_file09to10$DTQ240U == "Day" &
+                              !is.na(new_file09to10$DTQ240U)] <-
+  new_file09to10$DTD240Q[new_file09to10$DTQ240U == "Day" &
+                              !is.na(new_file09to10$DTQ240U)]
+
+# update the column to check that for weeks it divides the value by 7
+new_file09to10$Cookies_Cake[new_file09to10$DTQ240U == "Week" &
+                              !is.na(new_file09to10$DTQ240U)] <-
+ (new_file09to10$DTD240Q[new_file09to10$DTQ240U == "Week" &
+                              !is.na(new_file09to10$DTQ240U)])/7
+
+# update the column to check that for months it divides the value by 30
+new_file09to10$Cookies_Cake[new_file09to10$DTQ240U == "Month" &
+                              !is.na(new_file09to10$DTQ240U)] <-
+ (new_file09to10$DTD240Q[new_file09to10$DTQ240U == "Month" &
+                              !is.na(new_file09to10$DTQ240U)])/30
+
+new_file09to10 <- new_file09to10 %>% rename(Pregnant = RIDEXPRG, Education = DMDEDUC2, Race_Ethnicity = RIDRETH1, Arm_Circumference = BMXARMC, Waist_Circumference = BMXWAIST, Gender = RIAGENDR, Age = RIDAGEYR, Height = BMXHT, Weight = BMXWT, BMI = BMXBMI)
+
+new_file09to10<- new_file09to10 %>% select(Pregnant, Education, Race_Ethnicity, Arm_Circumference, Waist_Circumference, Gender, Age, Height, Weight, BMI, Cookies_Cake)
+```
+
+*Correlation between consumption of cakes/cookies and BMI.*
+```{r}
+# Calculate the truth of pearson correlation between consumption of cakes/cookies and BMI.
+new_file09to10BMI_pearson <- cor(new_file09to10$BMI, new_file09to10$Cookies_Cake, use = "complete", method = "pearson")
+
+# Calculate the truth of spearman correlation between consumption of cakes/cookies and BMI.
+new_file09to10BMI_spearman <- cor(new_file09to10$BMI,new_file09to10$Cookies_Cake, use = "complete", method = "spearman")
+```
+
+*Predicting on new data where body fat percentage was never measured (NHANES 09-10)*
+* Correlation between predictBodyFat function and Cookies_Cake
+```{r}
+# Covariate set 1
+new2_predict1 <- predictBodyFat(new_file09to10, weighted = FALSE, type = "predict", covariate_set = 1)
+
+new2_cov1_predict_pearson <- cor(new2_predict1, new_file09to10$Cookies_Cake, use = "complete",  method = "pearson")
+
+new2_cov1_predict_spearman <- cor(new2_predict1,new_file09to10$Cookies_Cake, use = "complete",  method = "spearman")
+
+# Cohvariate set 2
+new2_predict2 <- predictBodyFat(new_file09to10, weighted = FALSE, type = "predict", covariate_set = 2)
+
+new2_cov2_predict_pearson <- cor(new2_predict2, new_file09to10$Cookies_Cake, use = "complete",  method = "pearson")
+
+new2_cov2_predict_spearman <- cor(new2_predict2, new_file09to10$Cookies_Cake, use = "complete",  method = "spearman")
+```
+
+
+
