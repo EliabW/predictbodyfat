@@ -1,13 +1,3 @@
-# load the models
-# saved_model1 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/saved_model1.rds")
-# saved_weighted_model1 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/saved_weighted_model1.rds")
-# saved_model2 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/saved_model2.rds")
-# saved_weighted_model2 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/saved_weighted_model2.rds")
-# rf_residuals <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/rf_residuals1.rds")
-# weighted_rf_residuals <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/weighted_rf_residuals1.rds")
-# rf_residuals2 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/rf_residuals2.rds")
-# weighted_rf_residuals2 <- readRDS("/Users/eliabwoldegebriel/Documents/predictbodyfat/R/weighted_rf_residuals2.rds")
-
 #' Predicts or imputes body fat percentage
 #'
 #' The function predicts or imputes body fat percentage based on user input data
@@ -36,7 +26,7 @@
 #' @export
 #'
 #' @examples
-#' Example of standard prediction
+#' # Example of standard prediction
 #' df <- data.frame(
 #'     Age = c(35,38),
 #'     Gender = c("Female","Male"),
@@ -45,7 +35,7 @@
 #'     )
 #' predictBodyFat(data = df, weighted = FALSE, type = "predict", covariate_set = 1)
 #'
-#' Example of multiple imputation
+#' # Example of multiple imputation
 #' df2 <- data.frame(
 #'    Age = c(35,38,NA,NA),
 #'    Gender = as.factor(c("Female","Male",NA,NA)),
